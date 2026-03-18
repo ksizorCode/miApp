@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buscador de Clase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none;
+            background-color: #0f172a;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .compass-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            border: 4px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+        }
+        .arrow {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 60px solid #ef4444;
+            position: absolute;
+            transition: transform 0.2s ease-out;
+            filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5));
+        }
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen p-6">
+    
+    <header class="text-center mt-8">
+        <h1 class="text-3xl font-bold mb-2 text-blue-400">Guía de Destino</h1>
+        <p class="text-slate-400 text-sm">Coordenadas: 43.538058, -5.705044</p>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center justify-center w-full">
+        <div id="status-card" class="w-full max-w-sm p-6 rounded-3xl bg-slate-800 shadow-xl text-center mb-8 border border-slate-700">
+            <div id="message" class="text-xl font-bold mb-4 italic">Cargando posición...</div>
+            <div id="distance-display" class="text-5xl font-black text-white mb-2">-- m</div>
+            <div class="text-slate-400 uppercase tracking-widest text-xs font-semibold">Distancia al objetivo</div>
+        </div>
+
+        <div class="compass-container">
+            <div id="compass-arrow" class="arrow"></div>
+            <div class="absolute inset-0 border-2 border-dashed border-slate-700 rounded-full opacity-30"></div>
+        </div>
+
+        <div id="info" class="mt-8 text-slate-500 text-xs text-center px-4">
+            Asegúrate de tener el GPS activado y estar en un lugar abierto para mejor precisión.
+        </div>
+    </main>
+
+    <footer class="w-full max-w-sm mb-8">
+        <button id="start-btn" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold shadow-lg transition-all active:scale-95">
+            ACTIVAR BRÚJULA
+        </button>
+    </footer>
+
+    <script>
+        const targetLat = 43.538058;
+        const targetLon = -5.705044;
+        
+        const arrow = document.getElementById('compass-arrow');
+        const distanceDisplay = document.getElementById('distance-display');
+        const messageDisplay = document.getElementById('message');
+        const statusCard = document.getElementById('status-card');
+        const startBtn = document.getElementById('start-btn');
+
+        let userCoords = null;
+        let deviceOrientation = 0;
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        // Cálculo de distancia Haversine
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Radio de la Tierra en metros
+            const φ1 = toRad(lat1);
+            const φ2 = toRad(lat2);
+            const Δφ = toRad(lat2 - lat1);
+            const Δλ = toRad(lon2 - lon1);
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c;
+        }
+
+        // Cálculo de rumbo (bearing) inicial
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const φ1 = toRad(lat1);
+            const φ2 = toRad(lat2);
+            const Δλ = toRad(lon2 - lon1);
+
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) -
+                      Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            
+            return (toDeg(Math.atan2(y, x)) + 360) % 360;
+        }
+
+        function updateUI() {
+            if (!userCoords) return;
+
+            const distance = calculateDistance(userCoords.latitude, userCoords.longitude, targetLat, targetLon);
+            const bearing = calculateBearing(userCoords.latitude, userCoords.longitude, targetLat, targetLon);
+
+            // Actualizar Distancia
+            distanceDisplay.innerText = `${Math.round(distance)} m`;
+
+            // Lógica de Mensaje
+            if (distance <= 50) {
+                messageDisplay.innerText = "📍 Estas en clase";
+                messageDisplay.className = "text-xl font-bold mb-4 text-green-400 pulse";
+                statusCard.style.borderColor = "#4ade80";
+            } else {
+                messageDisplay.innerText = "🍩 No estas en clase ¿Qué estas tomando unos churrinos?";
+                messageDisplay.className = "text-xl font-bold mb-4 text-orange-400";
+                statusCard.style.borderColor = "#334155";
+            }
+
+            // Actualizar Brújula (Bearing - Orientación del dispositivo)
+            const arrowRotation = (bearing - deviceOrientation + 360) % 360;
+            arrow.style.transform = `rotate(${arrowRotation}deg)`;
+        }
+
+        function initSensors() {
+            // GPS
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    userCoords = pos.coords;
+                    updateUI();
+                },
+                (err) => {
+                    messageDisplay.innerText = "Error GPS: " + err.message;
+                },
+                { enableHighAccuracy: true }
+            );
+
+            // Magnetómetro / Orientación
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // Para iOS 13+
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation, true);
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Android y otros
+                window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+
+            startBtn.classList.add('hidden');
+        }
+
+        function handleOrientation(event) {
+            // Priorizar absolute orientation si está disponible
+            let heading = event.webkitCompassHeading || event.alpha;
+            
+            if (event.absolute === true || event.webkitCompassHeading !== undefined) {
+                deviceOrientation = heading;
+            } else {
+                // Fallback para dispositivos que no proveen norte absoluto fácilmente
+                deviceOrientation = 360 - event.alpha;
+            }
+            updateUI();
+        }
+
+        startBtn.addEventListener('click', initSensors);
+    </script>
+</body>
+</html>
