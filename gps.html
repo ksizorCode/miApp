@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocalización PRL</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            margin-top: 100px;
+        }
+        h1 {
+            font-size: 2em;
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="mensaje">Detectando ubicación...</h1>
+
+<script>
+// 📍 Coordenadas objetivo (tu clase)
+const latObjetivo = 43.538058;
+const lonObjetivo = -5.705044;
+
+// 📏 Radio en metros
+const radio = 30;
+
+// 📐 Función para calcular distancia (fórmula Haversine)
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // radio tierra en metros
+    const toRad = x => x * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// 📡 Obtener ubicación
+if (navigator.geolocation) {
+
+    navigator.geolocation.getCurrentPosition(pos => {
+
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const distancia = calcularDistancia(lat, lon, latObjetivo, lonObjetivo);
+
+        console.log("Distancia:", distancia);
+
+        if (distancia <= radio) {
+            document.getElementById("mensaje").innerText = "Estas en clase 👨‍🏫";
+        } else {
+            document.getElementById("mensaje").innerText = "Espero que sea la hora del pinchu 😏";
+        }
+
+    }, () => {
+        document.getElementById("mensaje").innerText = "No se pudo obtener la ubicación";
+    });
+
+} else {
+    document.getElementById("mensaje").innerText = "Geolocalización no soportada";
+}
+</script>
+
+</body>
+</html>
