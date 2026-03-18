@@ -3,62 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRL Geo App</title>
+<title>PRL Brújula PRO</title>
 
 <style>
-    body {
-        font-family: Arial;
-        text-align: center;
-        margin-top: 50px;
-    }
+body {
+    font-family: Arial;
+    text-align: center;
+    margin-top: 40px;
+}
 
-    #brujula {
-        margin: 40px auto;
-        width: 150px;
-        height: 150px;
-        border: 4px solid #333;
-        border-radius: 50%;
-        position: relative;
-    }
+#brujula {
+    margin: 30px auto;
+    width: 180px;
+    height: 180px;
+    border: 5px solid #333;
+    border-radius: 50%;
+    position: relative;
+}
 
-    #flecha {
-        width: 4px;
-        height: 60px;
-        background: red;
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform-origin: bottom center;
-        transform: translateX(-50%) rotate(0deg);
-    }
+#flecha {
+    width: 6px;
+    height: 70px;
+    background: red;
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+    border-radius: 3px;
+}
 
-    #distancia {
-        font-size: 1.5em;
-        margin-top: 20px;
-    }
+#distancia {
+    font-size: 1.4em;
+}
 
-    #mensaje {
-        font-size: 1.8em;
-        margin-top: 20px;
-    }
+#mensaje {
+    font-size: 1.8em;
+    margin-top: 10px;
+}
 </style>
 </head>
 <body>
 
-<h1>📍 Localizador PRL</h1>
+<h1>🧭 PRL Localizador</h1>
 
 <div id="brujula">
     <div id="flecha"></div>
 </div>
 
-<div id="distancia">Calculando distancia...</div>
+<div id="distancia">Calculando...</div>
 <div id="mensaje">Detectando ubicación...</div>
 
 <script>
-// 📍 Punto objetivo
+// 📍 Coordenadas objetivo
 const latObjetivo = 43.538058;
 const lonObjetivo = -5.705044;
 const radio = 30;
+
+let heading = 0; // orientación del móvil
 
 // 📐 Distancia (Haversine)
 function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -76,7 +78,7 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-// 🧭 Calcular rumbo (bearing)
+// 🧭 Rumbo al objetivo
 function calcularRumbo(lat1, lon1, lat2, lon2) {
     const toRad = x => x * Math.PI / 180;
     const toDeg = x => x * 180 / Math.PI;
@@ -87,11 +89,10 @@ function calcularRumbo(lat1, lon1, lat2, lon2) {
     const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
               Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
 
-    let brng = toDeg(Math.atan2(y, x));
-    return (brng + 360) % 360;
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-// 📡 Obtener posición continuamente
+// 📡 GPS en tiempo real
 navigator.geolocation.watchPosition(pos => {
 
     const lat = pos.coords.latitude;
@@ -102,7 +103,7 @@ navigator.geolocation.watchPosition(pos => {
 
     // 📏 Mostrar distancia
     document.getElementById("distancia").innerText =
-        "Distancia: " + distancia.toFixed(1) + " metros";
+        "Distancia: " + distancia.toFixed(1) + " m";
 
     // 📍 Mensaje
     if (distancia <= radio) {
@@ -111,14 +112,45 @@ navigator.geolocation.watchPosition(pos => {
         document.getElementById("mensaje").innerText = "Espero que sea la hora del pinchu 😏";
     }
 
-    // 🧭 Rotar flecha hacia el objetivo
-    document.getElementById("flecha").style.transform =
-        `translateX(-50%) rotate(${rumbo}deg)`;
+    // 🧭 Ajustar flecha (rumbo - orientación móvil)
+    const rotacion = rumbo - heading;
 
-}, () => {
-    document.getElementById("mensaje").innerText = "Error obteniendo ubicación";
+    document.getElementById("flecha").style.transform =
+        `translateX(-50%) rotate(${rotacion}deg)`;
+
 });
+
+// 📱 Orientación del dispositivo
+function activarOrientacion() {
+
+    // iOS necesita permiso
+    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+        DeviceOrientationEvent.requestPermission()
+        .then(response => {
+            if (response === "granted") {
+                window.addEventListener("deviceorientation", manejarOrientacion);
+            }
+        });
+    } else {
+        // Android directamente
+        window.addEventListener("deviceorientationabsolute", manejarOrientacion);
+        window.addEventListener("deviceorientation", manejarOrientacion);
+    }
+}
+
+// 📐 Leer orientación
+function manejarOrientacion(event) {
+    if (event.absolute && event.alpha !== null) {
+        heading = 360 - event.alpha; // corrección brújula
+    }
+}
+
+// Activar al tocar pantalla (requisito iOS)
+document.body.addEventListener("click", activarOrientacion);
+
 </script>
+
+<p>👉 Toca la pantalla para activar la brújula (iPhone)</p>
 
 </body>
 </html>
