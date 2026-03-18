@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRLAPP</title>
+
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Color navegador móvil -->
+    <meta name="theme-color" content="#1e88e5">
+
+</head>
+<body>
+
+    <h1>PRL Hola Mundo 👷‍♂️</h1>
+    <p>App de Prevención de Riesgos Laborales</p>
+
+    <button onclick="notificar()">Notificación PRL</button>
+
+    <button onclick="window.location.href='offline.html'">
+    Ver pantalla offline
+</button>
+<script>
+// 📌 Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('✅ SW registrado'))
+    .catch(err => console.log('❌ Error SW', err));
+}
+
+// 📌 Notificación simple
+function notificar() {
+    Notification.requestPermission().then(permiso => {
+        if (permiso === "granted") {
+            new Notification("PRLAPP", {
+                body: "Recuerda revisar las normas de seguridad 👷",
+                icon: "ico_prl.png"
+            });
+        }
+    });
+}
+</script>
+
+</body>
+</html>

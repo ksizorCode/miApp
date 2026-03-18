@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - PRLAPP</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0d47a1, #42a5f5);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .card {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            border: none;
+            background: white;
+            color: #0d47a1;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>📡 Sin conexión</h1>
+    <p>Estás offline, pero puedes seguir aprendiendo PRL 💡</p>
+
+    <button onclick="reintentar()">Reintentar conexión</button>
+
+    <div class="status" id="estado"></div>
+</div>
+
+<script>
+// 📡 Detectar conexión en tiempo real
+function actualizarEstado() {
+    const estado = document.getElementById('estado');
+    estado.textContent = navigator.onLine 
+        ? "🟢 Conexión recuperada"
+        : "🔴 Sin conexión";
+}
+
+// 🔄 Reintentar
+function reintentar() {
+    location.reload();
+}
+
+// Eventos online/offline
+window.addEventListener('online', actualizarEstado);
+window.addEventListener('offline', actualizarEstado);
+
+// Inicial
+actualizarEstado();
+</script>
+
+</body>
+</html>
